@@ -2,8 +2,9 @@ const mongoose = require('mongoose');
 
 const transactionSchema = new mongoose.Schema({
   bookId: { type: mongoose.Schema.Types.ObjectId, ref: 'Book' },
-  type: { type: String, enum: ['Add', 'Sell'], required: true },
-  quantityChanged: Number,
+  bookName: { type: String, required: true },  // Add this
+  type: { type: String, enum: ['Add', 'Sold'], required: true },
+  quantity: { type: Number, required: true },  // Rename from quantityChanged
   date: { type: Date, default: Date.now },
 });
 
