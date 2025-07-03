@@ -2,52 +2,34 @@ const express = require('express');
 const router = express.Router();
 const Book = require('../models/Book');
 
-// 📚 Add a new book
+// Add book
 router.post('/', async (req, res) => {
-  try {
-    const book = new Book(req.body);
-    const savedBook = await book.save();
-    res.status(201).json(savedBook);
-  } catch (err) {
-    console.error('Error adding book:', err);
-    res.status(500).json({ error: 'Failed to add book' });
-  }
+  const book = new Book(req.body);
+  await book.save();
+  res.json(book);
 });
 
-// 🔍 Search or list all books
+// Search / list books
 router.get('/', async (req, res) => {
-  try {
-    const query = req.query.search || '';
-    const books = await Book.find({ name: { $regex: query, $options: 'i' } });
-    res.json(books);
-  } catch (err) {
-    console.error('Error fetching books:', err);
-    res.status(500).json({ error: 'Failed to fetch books' });
-  }
+  const query = req.query.search || '';
+  const books = await Book.find({ name: { $regex: query, $options: 'i' } });
+  res.json(books);
 });
 
-// ✏️ Update book quantity
+// Update quantity
 router.put('/:id', async (req, res) => {
-  try {
-    const updatedBook = await Book.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    if (!updatedBook) {
-      return res.status(404).json({ error: 'Book not found' });
-    }
-    res.json(updatedBook);
-  } catch (err) {
-    console.error('Error updating book:', err);
-    res.status(500).json({ error: 'Failed to update book' });
-  }
+  const updated = await Book.findByIdAndUpdate(req.params.id, req.body, { new: true });
+  res.json(updated);
 });
 
-// 📊 Get summary: total titles, total quantity, and out-of-stock books
+// ✅ Summary route (total titles, total quantity, out-of-stock books)
 router.get('/summary', async (req, res) => {
   try {
-    const totalTitles = await Book.countDocuments();
+    const totalTitles = await Book.countDocuments({});
     const totalQuantityAgg = await Book.aggregate([
-      { $group: { _id: null, total: { $sum: "$quantity" } } }
+      { $group: { _id: null, totalQuantity: { $sum: "$quantity" } } }
     ]);
-    const totalQuantity = totalQuantityAgg[0] ? totalQuantityAgg[0].total : 0;
+    const totalQuantity = totalQuantityAgg[0]?.totalQuantity || 0;
 
     const outOfStockBooks = await Book.find({ quantity: 0 });
 
@@ -58,7 +40,7 @@ router.get('/summary', async (req, res) => {
     });
   } catch (err) {
     console.error('Error fetching summary:', err);
-    res.status(500).json({ error: 'Failed to fetch summary' });
+    res.status(500).json({ error: 'Server error fetching summary' });
   }
 });
 
