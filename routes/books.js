@@ -115,3 +115,4 @@ router.post('/transfer/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to transfer stock' });
   }
 });
+module.exports = router;
