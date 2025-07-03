@@ -15,7 +15,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// ✅ Search / list books with pagination (return only name & quantity)
+// ✅ Search / list books with pagination (return _id, name & quantity)
 router.get('/', async (req, res) => {
   try {
     const searchQuery = req.query.search || '';
@@ -32,7 +32,7 @@ router.get('/', async (req, res) => {
     const totalBooks = await Book.countDocuments(filter);
 
     // Fetch books for current page
-    const books = await Book.find(filter, { _id: 0, name: 1, quantity: 1 }) // ✅ Only name & quantity
+    const books = await Book.find(filter, { name: 1, quantity: 1 }) // ✅ _id included by default
       .sort({ name: 1 }) // Alphabetical order
       .skip(skip)
       .limit(limit);
@@ -72,7 +72,10 @@ router.get('/summary', async (req, res) => {
     ]);
     const totalQuantity = totalQuantityAgg[0]?.totalQuantity || 0;
 
-    const outOfStockBooks = await Book.find({ quantity: 0 }, { _id: 0, name: 1, quantity: 1 }); // ✅ Only name & quantity
+    const outOfStockBooks = await Book.find(
+      { quantity: 0 },
+      { name: 1, quantity: 1 } // ✅ Include _id for future updates
+    );
 
     res.json({
       totalTitles,
@@ -129,7 +132,7 @@ router.post('/transfer/:id', async (req, res) => {
 
     res.json({
       message: 'Stock transferred and transaction logged',
-      updatedBook: { name: book.name, quantity: book.quantity }, // ✅ Only name & quantity
+      updatedBook: { _id: book._id, name: book.name, quantity: book.quantity }, // ✅ Include _id
       transferTransaction: transaction
     });
   } catch (err) {
