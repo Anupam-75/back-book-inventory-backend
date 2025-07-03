@@ -15,12 +15,34 @@ router.post('/', async (req, res) => {
   }
 });
 
-// ✅ Search / list books
+// ✅ Search / list books with pagination (return only name & quantity)
 router.get('/', async (req, res) => {
   try {
-    const query = req.query.search || '';
-    const books = await Book.find({ name: { $regex: query, $options: 'i' } });
-    res.json(books);
+    const searchQuery = req.query.search || '';
+    const page = parseInt(req.query.page) || 1; // default page 1
+    const limit = parseInt(req.query.limit) || 20; // default 20 books per page
+    const skip = (page - 1) * limit;
+
+    // Filter books by name if search query is provided
+    const filter = searchQuery
+      ? { name: { $regex: searchQuery, $options: 'i' } }
+      : {};
+
+    // Get total count for pagination
+    const totalBooks = await Book.countDocuments(filter);
+
+    // Fetch books for current page
+    const books = await Book.find(filter, { _id: 0, name: 1, quantity: 1 }) // ✅ Only name & quantity
+      .sort({ name: 1 }) // Alphabetical order
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      page,
+      totalPages: Math.ceil(totalBooks / limit),
+      totalBooks,
+      books,
+    });
   } catch (err) {
     console.error('Error fetching books:', err);
     res.status(500).json({ error: 'Failed to fetch books' });
@@ -50,7 +72,7 @@ router.get('/summary', async (req, res) => {
     ]);
     const totalQuantity = totalQuantityAgg[0]?.totalQuantity || 0;
 
-    const outOfStockBooks = await Book.find({ quantity: 0 });
+    const outOfStockBooks = await Book.find({ quantity: 0 }, { _id: 0, name: 1, quantity: 1 }); // ✅ Only name & quantity
 
     res.json({
       totalTitles,
@@ -107,7 +129,7 @@ router.post('/transfer/:id', async (req, res) => {
 
     res.json({
       message: 'Stock transferred and transaction logged',
-      updatedBook: book,
+      updatedBook: { name: book.name, quantity: book.quantity }, // ✅ Only name & quantity
       transferTransaction: transaction
     });
   } catch (err) {
@@ -115,4 +137,5 @@ router.post('/transfer/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to transfer stock' });
   }
 });
+
 module.exports = router;
